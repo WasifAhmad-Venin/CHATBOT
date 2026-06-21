@@ -3,28 +3,40 @@ from google import genai
 from google.genai import types
 import os
 
-# 1. Page Configuration (Updated to VENIN Assistant)
+# 1. Page Configuration
 st.set_page_config(page_title="VENIN Assistant", page_icon="🕷️", layout="centered")
 st.title("🕷️ VENIN Assistant")
 st.write("Welcome. Interact with the custom-built VENIN artificial intelligence framework below.")
 
-# 2. Automatically grab the key from Streamlit Cloud Secrets or local environment
-api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+# 2. Safely grab the key without crashing if secrets don't exist locally
+api_key = None
+try:
+    api_key = st.secrets.get("GEMINI_API_KEY")
+except Exception:
+    pass
+
+# If it's not in secrets, look at your environment or fall back
+if not api_key:
+    api_key = os.environ.get("GEMINI_API_KEY")
+
+# 3. If no key is found anywhere, show a text input box in the sidebar (perfect for local testing!)
+if not api_key:
+    api_key = st.sidebar.text_input("Enter your Gemini API Key for local testing:", type="password")
 
 if api_key:
     # Initialize the Google GenAI Client
     client = genai.Client(api_key=api_key)
 
-    # 3. Initialize chat memory
+    # 4. Initialize chat memory
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # 4. Display past messages
+    # 5. Display past messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # 5. Quick Starter Prompt Buttons
+    # 6. Quick Starter Prompt Buttons
     st.write("---")
     st.caption("💡 Quick operations:")
     col1, col2 = st.columns(2)
@@ -37,7 +49,7 @@ if api_key:
         if st.button("🚀 Disruptive Startup Pitch"):
             button_prompt = "Give me a unique, funny, or futuristic startup business idea in 3 bullet points."
 
-    # 6. Handle input
+    # 7. Handle input
     user_input = st.chat_input("Command VENIN...")
     final_input = user_input or button_prompt
 
@@ -46,7 +58,7 @@ if api_key:
             st.markdown(final_input)
         st.session_state.messages.append({"role": "user", "content": final_input})
 
-        # 7. Get response from Gemini
+        # 8. Get response from Gemini
         with st.chat_message("assistant"):
             response_placeholder = st.empty()
             
@@ -61,7 +73,6 @@ if api_key:
                         )
                     )
 
-                # Initialize chat session with the customized VENIN personality
                 chat = client.chats.create(
                     model="gemini-2.5-flash",
                     history=formatted_history,
@@ -84,4 +95,4 @@ if api_key:
         if button_prompt:
             st.rerun()
 else:
-    st.error("🔑 API Key missing! Please add 'GEMINI_API_KEY' to your Streamlit Advanced Secrets dashboard.")
+    st.info("🔑 Running locally? Enter your Gemini API key in the sidebar text box to start testing! (On the live web link, this key will load automatically).")
